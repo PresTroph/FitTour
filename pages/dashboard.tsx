@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/router";
+
 
 interface Workout {
   id: string;
@@ -10,7 +12,14 @@ interface Workout {
 
 export default function DashboardPage() {
   const { session } = useAuth();
-  console.log("session:", session);
+  const router = useRouter();
+
+useEffect(() => {
+  if (session === null) {
+    router.push("/login");
+  }
+}, [session]);
+
   const [workouts, setWorkouts] = useState<Workout[]>([]);
 
   useEffect(() => {
