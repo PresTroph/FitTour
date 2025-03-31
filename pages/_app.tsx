@@ -1,11 +1,23 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 
-export default function App({ Component, pageProps }: AppProps) {
+function InnerApp({ Component, pageProps }: AppProps) {
+  const { session } = useAuth();
+
+  useEffect(() => {
+    console.log("👀 Session from _app.tsx:", session);
+  }, [session]);
+
+  return <Component {...pageProps} />;
+}
+
+export default function App(props: AppProps) {
   return (
-  <AuthProvider>
-  <Component {...pageProps} />;
-  </AuthProvider>
+    <AuthProvider>
+      <InnerApp {...props} />
+    </AuthProvider>
   );
 }
+

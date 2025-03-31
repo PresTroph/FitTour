@@ -1,8 +1,9 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/router";
-
+import SubscribeButton from "@/components/buttons/SubscribeButton";
 
 interface Workout {
   id: string;
@@ -11,16 +12,17 @@ interface Workout {
 }
 
 export default function DashboardPage() {
-  const { session } = useAuth();
+  const { session, supabase } = useAuth(); // updated to grab supabase from context
   const router = useRouter();
-
-useEffect(() => {
-  if (session === null) {
-    router.push("/login");
-  }
-}, [session]);
-
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+
+  useEffect(() => {
+    if (session === undefined) return; // still loading
+
+    if (session === null) {
+      router.push("/login");
+    }
+  }, [session]);
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -40,7 +42,7 @@ useEffect(() => {
     };
 
     fetchWorkouts();
-  }, [session]);
+  }, [session, supabase]);
 
   return (
     <main className="min-h-screen bg-gray-100 p-6">
@@ -53,7 +55,9 @@ useEffect(() => {
           <ul className="space-y-4">
             {workouts.map((w) => (
               <li key={w.id} className="border rounded p-4">
-                <pre className="text-sm whitespace-pre-wrap">{w.workout_data}</pre>
+                <pre className="text-sm whitespace-pre-wrap">
+                  {w.workout_data}
+                </pre>
                 <p className="text-xs text-gray-500 mt-2">
                   {new Date(w.created_at).toLocaleString()}
                 </p>
@@ -61,10 +65,15 @@ useEffect(() => {
             ))}
           </ul>
         )}
+
+        {/* CTA: Subscribe Button */}
+        <div className="mt-10 border-t pt-6 text-center">
+          <p className="text-sm text-gray-500 mb-3">
+            Want unlimited workouts and early feature access?
+          </p>
+          <SubscribeButton />
+        </div>
       </div>
     </main>
   );
 }
-// This page fetches and displays the user's saved workouts from the database.
-// It uses the `useAuth` hook to get the current session and fetches workouts from the "workouts" table.
-// The workouts are displayed in a list format, with the workout data and creation date.

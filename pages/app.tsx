@@ -1,22 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import WorkoutForm from "../components/forms/WorkoutForm";
 
 export default function AppPage() {
+  const { session } = useAuth();
   const [result, setResult] = useState<string[]>([]);
-  const { session } = useAuth(); // ✅ Only once
-
-  console.log("Current session:", session);
 
   const handleWorkoutGenerated = async (workout: string[]) => {
-    setResult(workout);
+    if (!session) return;
 
-    if (session) {
-      await supabase.from("workouts").insert({
-        user_id: session.user.id,
-        workout_data: workout.join("\n"),
-      });
+    const userId = session.user.id;
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // Check existing workouts this month
+    const { data: existingWorkouts, error } = await supabase
+      .from("workouts")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("created_at", startOfMonth.toISOString());
+
+    if (existingWorkouts && existingWorkouts.length >= 3) {
+      alert("🚫 You’ve hit your 3 workouts/month limit. Upgrade to Pro for unlimited access.");
+      return;
+    }
+
+    // Insert workout if under limit
+    const { error: insertError } = await supabase.from("workouts").insert({
+      user_id: userId,
+      workout_data: workout.join("\n"),
+    });
+
+    if (!insertError) {
+      setResult(workout);
+    } else {
+      console.error("Insert error:", insertError);
     }
   };
 
@@ -39,4 +59,5 @@ export default function AppPage() {
     </main>
   );
 }
+
 

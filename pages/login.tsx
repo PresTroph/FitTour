@@ -1,9 +1,12 @@
+"use client";
+
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useSupabase } from "../lib/useSupabase"; // 👈 updated path to match relative structure
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const supabase = useSupabase(); // 👈 this is the SSR-compatible Supabase client
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +21,10 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <form onSubmit={handleLogin} className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-6 rounded-xl shadow-md w-full max-w-md"
+      >
         <h1 className="text-2xl font-bold mb-4">Sign In</h1>
         <input
           type="email"
@@ -34,13 +40,10 @@ export default function LoginPage() {
         >
           Send Magic Link
         </button>
-        {message && <p className="mt-4 text-center text-sm text-gray-600">{message}</p>}
+        {message && (
+          <p className="mt-4 text-center text-sm text-gray-600">{message}</p>
+        )}
       </form>
     </main>
   );
 }
-// This code is a simple login page using Supabase for authentication.
-// It allows users to enter their email and receive a magic link to log in.
-// The page is styled using Tailwind CSS for a clean and modern look.
-// The form includes basic validation and feedback messages for the user.
-// The login process is handled asynchronously, and the user is informed of the result.
