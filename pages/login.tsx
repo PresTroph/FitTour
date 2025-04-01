@@ -1,49 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { useSupabase } from "../lib/useSupabase"; // 👈 updated path to match relative structure
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext"; // adjust the path based on your folder structure
 
-export default function LoginPage() {
+export default function Login() {
+  const { supabase, session, loading } = useAuth();
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const supabase = useSupabase(); // 👈 this is the SSR-compatible Supabase client
+  const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Redirect to dashboard if a session exists (only when loading is complete)
+    if (!loading && session) {
+      router.push("/dashboard");
+    }
+  }, [session, loading, router]);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { error } = await supabase.auth.signInWithOtp({ email });
-
     if (error) {
-      setMessage("Something went wrong. Try again.");
+      console.error("Error signing in:", error);
     } else {
-      setMessage("Check your email for the login link!");
+      alert("Check your email for the magic link!");
     }
   };
 
+  if (loading) return <div>Loading...</div>;
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-6 rounded-xl shadow-md w-full max-w-md"
-      >
-        <h1 className="text-2xl font-bold mb-4">Sign In</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <input
           type="email"
-          placeholder="you@example.com"
+          placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 border rounded mb-4"
+          className="border p-2 rounded"
           required
         />
-        <button
-          type="submit"
-          className="w-full bg-black text-white py-2 rounded hover:opacity-90"
-        >
+        <button type="submit" className="bg-blue-600 text-white py-2 rounded">
           Send Magic Link
         </button>
-        {message && (
-          <p className="mt-4 text-center text-sm text-gray-600">{message}</p>
-        )}
       </form>
-    </main>
+    </div>
   );
 }
