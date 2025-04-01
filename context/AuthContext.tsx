@@ -17,15 +17,30 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  // Initialize the Supabase client once
-  const [supabase] = useState(() => createBrowserClient());
+  // 1) Grab env variables (string | undefined)
+  const envSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const envSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // session can be null or a valid Session
+  // 2) Runtime check: if they're missing, throw an error.
+  //    This ensures at runtime we never pass undefined to createBrowserClient.
+  if (!envSupabaseUrl || !envSupabaseAnonKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
+    );
+  }
+
+  // 3) Narrow the types so that TS knows these are strings, not undefined.
+  const supabaseUrl: string = envSupabaseUrl;
+  const supabaseAnonKey: string = envSupabaseAnonKey;
+
+  // 4) Create the Supabase client with two mandatory arguments.
+  const [supabase] = useState(() => createBrowserClient(supabaseUrl, supabaseAnonKey));
+
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1) Fetch the initial session
+    // Fetch the initial session
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
         console.error("Error fetching session:", error);
@@ -34,14 +49,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     });
 
-    // 2) Subscribe to auth state changes
+    // Subscribe to auth state changes
     const { data: subscriptionData } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         setSession(session);
       }
     );
 
-    // 3) Cleanup subscription on unmount
+    // Cleanup subscription on unmount
     return () => {
       subscriptionData.subscription.unsubscribe();
     };
@@ -61,4 +76,3 @@ export function useAuth() {
   }
   return context;
 }
-

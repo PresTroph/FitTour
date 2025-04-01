@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Remove this line since we'll get supabase from useAuth()
+// import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import WorkoutForm from "../components/forms/WorkoutForm";
 
 export default function AppPage() {
-  const { session } = useAuth();
+  // Destructure both supabase and session from useAuth()
+  const { supabase, session } = useAuth();
   const [result, setResult] = useState<string[]>([]);
 
   const handleWorkoutGenerated = async (workout: string[]) => {
@@ -15,7 +17,7 @@ export default function AppPage() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    // Check existing workouts this month
+    // Use the supabase client from useAuth()
     const { data: existingWorkouts, error } = await supabase
       .from("workouts")
       .select("*")
@@ -27,7 +29,6 @@ export default function AppPage() {
       return;
     }
 
-    // Insert workout if under limit
     const { error: insertError } = await supabase.from("workouts").insert({
       user_id: userId,
       workout_data: workout.join("\n"),
@@ -59,5 +60,4 @@ export default function AppPage() {
     </main>
   );
 }
-
 
