@@ -59,36 +59,40 @@ export default function Dashboard() {
   }
 
   const extendedUser = session?.user as unknown as ExtendedUser;
-  const isSubscribed = extendedUser?.app_metadata?.subscription?.status === "active";
+  const isSubscribed =
+    extendedUser?.app_metadata?.subscription?.status === "active";
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopNavbar /> {/* ✅ Reusable Top Navbar */}
+      <TopNavbar />
 
-      <div className="p-4 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p>Welcome, {session?.user?.email}</p>
+      <div className="p-4 max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
+        <p className="text-gray-600 mb-6">
+          Welcome, {session?.user?.email}
+        </p>
 
         {workouts.length === 0 ? (
-          <p className="mt-4">No workouts yet</p>
+          <p className="text-gray-500">No workouts yet</p>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {workouts.map((workout) => {
               const workoutDate = workout.created_at
                 ? new Date(workout.created_at).toLocaleDateString()
                 : "Unknown Date";
+
               return (
                 <div
                   key={workout.id}
-                  className="border p-4 shadow-md rounded-md hover:scale-105 transition-transform"
+                  className="bg-white p-4 rounded-xl shadow hover:shadow-md border transition"
                 >
-                  <p className="text-sm text-gray-500">
-                    Workout Date: {workoutDate}
+                  <p className="text-xs text-gray-500 mb-1">
+                    {workoutDate}
                   </p>
                   {workout.workout_data && (
-                    <div className="mt-2 whitespace-pre-line">
+                    <pre className="whitespace-pre-line text-sm text-gray-800">
                       {workout.workout_data}
-                    </div>
+                    </pre>
                   )}
                 </div>
               );
@@ -97,15 +101,18 @@ export default function Dashboard() {
         )}
 
         {!isSubscribed ? (
-          <div className="mt-4">
-            <p className="mb-2">Subscribe to get full access</p>
+          <div className="mt-8">
+            <p className="mb-2 text-gray-700">
+              Subscribe to get full access
+            </p>
             <SubscribeButton />
           </div>
         ) : (
-          <p className="mt-4">You have full access</p>
+          <p className="mt-8 text-green-600 font-medium">
+            You have full access
+          </p>
         )}
       </div>
     </div>
   );
 }
-

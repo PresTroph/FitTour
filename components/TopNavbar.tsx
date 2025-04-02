@@ -2,27 +2,36 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function TopNavbar() {
   const { supabase, session } = useAuth();
   const router = useRouter();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.user_metadata?.avatar_url) {
-      setAvatarUrl(session.user.user_metadata.avatar_url);
-    }
-  }, [session]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <nav className="flex items-center justify-between bg-white shadow px-4 py-3">
-      {/* Logo / Title */}
+    <nav className="flex items-center justify-between bg-white shadow px-4 py-3 sticky top-0 z-50">
+      {/* Logo */}
       <h1
         className="text-xl font-bold text-black cursor-pointer"
         onClick={() => router.push("/dashboard")}
@@ -30,32 +39,64 @@ export default function TopNavbar() {
         FitTour
       </h1>
 
-      <div className="flex items-center gap-4">
-        {/* Avatar (Clickable) */}
-        <div
-          onClick={() => router.push("/profile")}
-          className="cursor-pointer"
+      <div className="relative" ref={dropdownRef}>
+        {/* Avatar Button */}
+        <button
+          onClick={() => setDropdownOpen((prev) => !prev)}
+          className="w-9 h-9 rounded-full border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black"
+          aria-label="User Menu"
         >
-          {avatarUrl ? (
+          {session?.user?.user_metadata?.avatar_url ? (
             <img
-              src={avatarUrl}
+              src={session.user.user_metadata.avatar_url}
               alt="Avatar"
-              className="w-8 h-8 rounded-full object-cover border"
+              className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm text-gray-700">
+            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-sm text-gray-700">
               ?
             </div>
           )}
-        </div>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="bg-black text-white px-3 py-1 rounded hover:opacity-90 transition text-sm"
-        >
-          Logout
         </button>
+
+        {/* Dropdown Menu */}
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg z-50 text-sm">
+            <button
+              onClick={() => {
+                router.push("/dashboard");
+                setDropdownOpen(false);
+              }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => {
+                router.push("/profile");
+                setDropdownOpen(false);
+              }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => {
+                router.push("/settings");
+                setDropdownOpen(false);
+              }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-100"
+            >
+              Settings
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
