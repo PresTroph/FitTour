@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import TopNavbar from "@/components/TopNavbar";
+import ReactMarkdown from "react-markdown";
 
 export default function AIGeneratorPage() {
   const [input, setInput] = useState("");
@@ -52,10 +53,10 @@ export default function AIGeneratorPage() {
         </button>
 
         {response && (
-          <div className="mt-6 p-4 bg-white border rounded shadow-sm whitespace-pre-line">
-            {response}
-          </div>
-        )}
+        <div className="mt-6 p-4 bg-white border rounded shadow-sm prose max-w-none">
+            <ReactMarkdown>{response}</ReactMarkdown>
+        </div>
+    )}
       </div>
     </div>
   );
