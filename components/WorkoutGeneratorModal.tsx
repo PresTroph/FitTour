@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -11,13 +11,49 @@ type Props = {
   onClose: () => void;
 };
 
+const TAGS = [
+  "Fat Loss",
+  "Muscle Gain",
+  "No Equipment",
+  "Beginner",
+  "Full Body",
+  "HIIT",
+  "Home Workout",
+  "Travel Friendly",
+  "Bodyweight Only",
+];
+
 export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
   const [input, setInput] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
+  const [memoryPrompt, setMemoryPrompt] = useState("");
 
   const { supabase, session } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchMemory = async () => {
+      if (!session?.user.id) return;
+
+      const { data, error } = await supabase
+        .from("workouts")
+        .select("workout_data")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error("Failed to fetch past workouts:", error);
+        return;
+      }
+
+      const previous = data?.map((w: { workout_data: any; }) => w.workout_data).join("\n\n");
+      setMemoryPrompt(previous || "");
+    };
+
+    if (isOpen) fetchMemory();
+  }, [isOpen, supabase, session?.user.id]);
 
   if (!isOpen) return null;
 
@@ -26,12 +62,16 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
     setResponse("");
 
     try {
+      const finalPrompt = memoryPrompt
+        ? `${memoryPrompt}\n\nUser Request: ${input}`
+        : input;
+
       const res = await fetch("/api/generate-workout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: input }),
+        body: JSON.stringify({ prompt: finalPrompt }),
       });
 
       const data = await res.json();
@@ -49,7 +89,7 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
         return;
       }
 
-      setResponse(generatedText); // Show it in modal
+      setResponse(generatedText);
 
       const { data: saved, error } = await supabase.from("workouts").insert([
         {
@@ -62,7 +102,6 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
         console.error("❌ Error saving workout to Supabase:", error);
       } else {
         console.log("✅ Workout saved:", saved);
-        // ❌ Do not refresh or close here
       }
     } catch (error) {
       console.error("Error generating workout:", error);
@@ -70,6 +109,15 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
     }
 
     setLoading(false);
+  };
+
+  const handleTagClick = (tag: string) => {
+    const cleaned = tag.trim();
+    if (!input.includes(cleaned)) {
+      setInput((prev) =>
+        prev.length > 0 ? `${prev.trim()}, ${cleaned}` : cleaned
+      );
+    }
   };
 
   return (
@@ -81,13 +129,27 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
             onClick={() => {
               if (!loading) {
                 onClose();
-                router.refresh(); // ✅ Refresh only after user closes manually
+                router.refresh();
               }
             }}
             className="text-gray-500 hover:text-black text-lg"
           >
             ✕
           </button>
+        </div>
+
+        {/* 🏷️ Quick Tags */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {TAGS.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => handleTagClick(tag)}
+              className="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full transition"
+            >
+              {tag}
+            </button>
+          ))}
         </div>
 
         <textarea
@@ -115,3 +177,4 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: Props) {
     </div>
   );
 }
+

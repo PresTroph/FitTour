@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import SubscribeButton from "../components/buttons/SubscribeButton";
 import TopNavbar from "../components/TopNavbar";
 import WorkoutGeneratorModal from "../components/WorkoutGeneratorModal";
+import EditWorkoutModal from "../components/EditWorkoutModal"; // ✅ NEW
 
 type Workout = {
   workout_data: any;
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [expandedWorkout, setExpandedWorkout] = useState<Workout | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
 
   const fetchWorkouts = async () => {
     if (!session?.user) return;
@@ -110,12 +113,24 @@ export default function Dashboard() {
                     {workout.workout_data}
                   </pre>
 
+                  {/* Edit Button */}
+                  <button
+                    onClick={() => {
+                      setEditingWorkout(workout);
+                      setShowEditModal(true);
+                    }}
+                    className="absolute top-2 right-13 text-xs text-blue-500 hover:underline"
+                  >
+                    Edit
+                  </button>
+
+                  {/* Delete Button */}
                   <button
                     onClick={() => {
                       setSelectedWorkoutId(workout.id);
                       setShowDeleteModal(true);
                     }}
-                    className="absolute top-2 right-2 text-red-500 text-xs hover:underline"
+                    className="absolute top-2 right-2 text-xs text-red-500 hover:underline"
                   >
                     Delete
                   </button>
@@ -135,7 +150,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Floating Workout Generator Button */}
+      {/* Floating Button */}
       <button
         onClick={() => setShowGenerator(true)}
         className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-full shadow-lg hover:opacity-90 transition"
@@ -143,6 +158,7 @@ export default function Dashboard() {
         + Generate Workout
       </button>
 
+      {/* Modals */}
       <WorkoutGeneratorModal
         isOpen={showGenerator}
         onClose={() => {
@@ -151,7 +167,6 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Workout View Modal */}
       {expandedWorkout && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
           <div className="bg-white max-w-xl w-full rounded-lg p-6 shadow-lg relative">
@@ -169,7 +184,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
@@ -194,6 +208,22 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ✅ Edit Workout Modal */}
+      {showEditModal && editingWorkout && (
+        <EditWorkoutModal
+          workoutId={editingWorkout.id}
+          initialData={editingWorkout.workout_data}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingWorkout(null);
+          }}
+          onSave={() => {
+            fetchWorkouts();
+          }}
+        />
+      )}
     </div>
   );
 }
+
