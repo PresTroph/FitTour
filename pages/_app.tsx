@@ -1,23 +1,17 @@
-import "@/styles/globals.css";
+// pages/_app.tsx
+import { AuthProvider } from "../context/AuthContext";
+import { Toaster } from "react-hot-toast";
 import type { AppProps } from "next/app";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { useEffect } from "react";
+import "../styles/globals.css"; // Adjust the path if necessary
 
-function InnerApp({ Component, pageProps }: AppProps) {
-  const { session } = useAuth();
-
-  useEffect(() => {
-    console.log("👀 Session from _app.tsx:", session);
-  }, [session]);
-
-  return <Component {...pageProps} />;
-}
-
-export default function App(props: AppProps) {
+function MyApp({ Component, pageProps }: AppProps) {
   return (
     <AuthProvider>
-      <InnerApp {...props} />
+      <Component {...pageProps} />
+      <Toaster position="top-right" />
     </AuthProvider>
   );
 }
+
+export default MyApp;
 

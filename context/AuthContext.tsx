@@ -1,64 +1,44 @@
+// context/AuthContext.tsx
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Session, SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "../types/supabase"; // Adjust the path if needed
 
-interface AuthContextType {
-  supabase: ReturnType<typeof createBrowserClient>;
+type AuthContextType = {
+  supabase: SupabaseClient<Database>;
   session: Session | null;
   loading: boolean;
-}
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  supabase: {} as SupabaseClient<Database>,
+  session: null,
+  loading: true,
+});
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  // 1) Grab env variables (string | undefined)
-  const envSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const envSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // 2) Runtime check: if they're missing, throw an error.
-  //    This ensures at runtime we never pass undefined to createBrowserClient.
-  if (!envSupabaseUrl || !envSupabaseAnonKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
-    );
-  }
-
-  // 3) Narrow the types so that TS knows these are strings, not undefined.
-  const supabaseUrl: string = envSupabaseUrl;
-  const supabaseAnonKey: string = envSupabaseAnonKey;
-
-  // 4) Create the Supabase client with two mandatory arguments.
-  const [supabase] = useState(() => createBrowserClient(supabaseUrl, supabaseAnonKey));
-
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Create a typed Supabase client for the browser
+  const [supabase] = useState(() => createBrowserSupabaseClient<Database>());
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch the initial session
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.error("Error fetching session:", error);
-      }
-      setSession(data.session);
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       setLoading(false);
     });
 
-    // Subscribe to auth state changes
-    const { data: subscriptionData } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        setSession(session);
-      }
-    );
+    // Listen for auth state changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
 
-    // Cleanup subscription on unmount
     return () => {
-      subscriptionData.subscription.unsubscribe();
+      listener?.subscription.unsubscribe();
     };
   }, [supabase]);
 
@@ -69,10 +49,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);

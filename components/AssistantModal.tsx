@@ -3,12 +3,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
 };
 
+// Utility to remove Markdown formatting from text
 function stripMarkdown(text: string) {
   return text
     .replace(/[*_~`>#+=-]/g, "")
@@ -31,8 +33,9 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialize speech recognition if available
   useEffect(() => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
+    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -51,6 +54,7 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
     }
   }, []);
 
+  // Added missing startListening function
   const startListening = () => {
     if (recognitionRef.current) {
       setIsListening(true);
@@ -88,6 +92,7 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
         throw new Error("Failed to fetch TTS stream");
       }
 
+      // Create a stream from the response
       const reader = response.body.getReader();
       const stream = new ReadableStream({
         async start(controller) {
@@ -186,7 +191,9 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
             </div>
           ))}
           {isThinking && (
-            <div className="text-sm text-gray-500 italic mt-2">Assistant is thinking...</div>
+            <div className="text-sm text-gray-500 italic mt-2">
+              Assistant is thinking...
+            </div>
           )}
         </div>
 
@@ -212,7 +219,9 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
           {/* 🎤 Mic */}
           <button
             onClick={startListening}
-            className={`px-3 py-2 text-sm rounded ${isListening ? "bg-blue-700" : "bg-blue-500"} text-white`}
+            className={`px-3 py-2 text-sm rounded ${
+              isListening ? "bg-blue-700" : "bg-blue-500"
+            } text-white`}
             title="Speak"
           >
             🎤
@@ -231,7 +240,9 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
             </button>
           ) : (
             <button
-              onClick={() => playTTS(messages[messages.length - 1]?.content || "")}
+              onClick={() =>
+                playTTS(messages[messages.length - 1]?.content || "")
+              }
               className="px-3 py-2 text-sm rounded bg-green-500 text-white hover:bg-green-600"
               title="Play response"
             >
@@ -243,6 +254,7 @@ export default function AssistantModal({ isOpen, onClose }: Props) {
     </div>
   );
 }
+
 
 
 

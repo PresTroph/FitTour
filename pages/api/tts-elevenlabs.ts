@@ -8,12 +8,16 @@ export const config = {
   },
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     return res.status(405).end("Method Not Allowed");
   }
 
   try {
+    // Collect raw request body (since bodyParser is disabled)
     const buffers: Uint8Array[] = [];
     for await (const chunk of req) {
       buffers.push(chunk);
@@ -28,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY;
     const voiceId = process.env.ELEVENLABS_VOICE_ID;
 
+    // Call ElevenLabs API to generate TTS streaming response
     const elevenRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
       method: "POST",
       headers: {
@@ -45,33 +50,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!elevenRes.ok) {
-      const error = await elevenRes.text();
-      console.error("❌ ElevenLabs streaming error:", error);
-      return res.status(500).json({ error: "Streaming failed", details: error });
+      const errorText = await elevenRes.text();
+      console.error("❌ ElevenLabs streaming error:", errorText);
+      return res.status(500).json({ error: "Streaming failed", details: errorText });
     }
 
+    // Set response headers for audio stream
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Transfer-Encoding", "chunked");
+
+    // Stream the response from ElevenLabs directly to the client
     if (elevenRes.body) {
       const reader = elevenRes.body.getReader();
-      const writer = res;
-
-      writer.setHeader("Content-Type", "audio/mpeg");
-      writer.setHeader("Transfer-Encoding", "chunked");
 
       const pump = async () => {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          writer.write(value);
+          res.write(value);
         }
-        writer.end();
+        res.end();
       };
 
       await pump();
+    } else {
+      res.status(500).json({ error: "No response body from ElevenLabs" });
     }
   } catch (err) {
     console.error("❌ Streaming error:", err);
-    return res.status(500).json({ error: "Unexpected error occurred" });
+    res.status(500).json({ error: "Unexpected error occurred" });
   }
 }

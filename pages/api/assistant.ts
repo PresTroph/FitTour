@@ -1,67 +1,45 @@
 // pages/api/assistant.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/types/supabase";
 
-import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-// import { createServerClient } from "@supabase/ssr";
-import type { Database } from "@/types/supabase"; // Optional if using types
-import { cookies,headers } from "next/headers";
-
-
-export const dynamic = "force-dynamic";
-
-export async function POST(req: NextRequest) {
-  const { messages } = await req.json();
-
-  if (!messages || !Array.isArray(messages)) {
-    return NextResponse.json({ error: "Missing messages" }, { status: 400 });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-    const cookieStore = cookies(); // ✅ sync call
-    const headerStore = headers(); // ✅ sync call
+  const { messages } = req.body;
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: "Missing messages" });
+  }
 
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        cookies: {
-          async get(name: string) {
-            return (await cookies()).get(name)?.value;
-          },
-          set(name: string, value: string, options?: CookieOptions) {
-            // You can skip actual implementation for server calls
-          },
-          remove(name: string, options?: CookieOptions) {
-            // Same as above
-          }
-        }
-      }
-  );
-  
-
+  // Create a Supabase client that can read cookies from req/res
+  const supabase = createServerSupabaseClient<Database>({ req, res });
+  // Retrieve the user session
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const user = session?.user;
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // Check if user is Pro
+  const user = session.user;
   const isPro = user.app_metadata?.subscription?.status === "active";
-
   if (!isPro) {
-    return NextResponse.json(
-      {
-        error: "Upgrade to Pro to use the AI Assistant.",
-        code: "not_pro",
-      },
-      { status: 403 }
-    );
+    return res.status(403).json({
+      error: "Upgrade to Pro to use the AI Assistant.",
+      code: "not_pro",
+    });
   }
 
-  const model = "gpt-3.5-turbo"; // Or "gpt-4-turbo" if preferred
-
+  // Example: call OpenAI's chat completion
+  const model = "gpt-3.5-turbo";
   try {
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -80,15 +58,19 @@ export async function POST(req: NextRequest) {
 
     if (!openaiRes.ok) {
       console.error("❌ OpenAI error:", data);
-      return NextResponse.json({ error: data }, { status: 500 });
+      return res.status(500).json({ error: data });
     }
 
-    const reply = data.choices?.[0]?.message?.content;
-    return NextResponse.json({ reply });
+    const reply = data.choices?.[0]?.message?.content || "No response";
+    return res.status(200).json({ reply });
   } catch (err) {
     console.error("❌ Assistant error:", err);
-    return NextResponse.json({ error: "Failed to generate response." }, { status: 500 });
+    return res
+      .status(500)
+      .json({ error: "Failed to generate response." });
   }
 }
+
+
 
 
