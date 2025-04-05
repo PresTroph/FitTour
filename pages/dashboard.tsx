@@ -7,6 +7,8 @@ import SubscribeButton from "../components/buttons/SubscribeButton";
 import TopNavbar from "../components/TopNavbar";
 import WorkoutGeneratorModal from "../components/WorkoutGeneratorModal";
 import EditWorkoutModal from "../components/EditWorkoutModal"; // ✅ NEW
+import AssistantModal from "../components/AssistantModal"; // ✅ NEW
+
 
 type Workout = {
   workout_data: any;
@@ -29,6 +31,8 @@ export default function Dashboard() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false); // ✅ Assistant modal
+
   const [expandedWorkout, setExpandedWorkout] = useState<Workout | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(null);
@@ -150,12 +154,28 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Floating Assistant Button */}
+      <button
+        onClick={() => router.push("/assistant")}
+        className="fixed bottom-20 right-6 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg hover:opacity-90 transition"
+      >
+        💬 Chat with AI Assistant
+      </button>
+
       {/* Floating Button */}
       <button
         onClick={() => setShowGenerator(true)}
         className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-full shadow-lg hover:opacity-90 transition"
       >
         + Generate Workout
+      </button>
+
+      {/* 💬 Floating AI Assistant Button */}
+      <button
+        onClick={() => setShowAssistant(true)}
+        className="fixed bottom-20 right-6 bg-white text-black border px-4 py-2 rounded-full shadow hover:bg-gray-100 transition"
+      >
+        💬 Chat with AI Assistant
       </button>
 
       {/* Modals */}
@@ -222,6 +242,10 @@ export default function Dashboard() {
             fetchWorkouts();
           }}
         />
+      )}
+      {/* ✅ Assistant Chat Modal */}
+      {showAssistant && (
+        <AssistantModal isOpen={showAssistant} onClose={() => setShowAssistant(false)} />
       )}
     </div>
   );
